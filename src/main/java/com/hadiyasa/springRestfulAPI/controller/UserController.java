@@ -2,6 +2,7 @@ package com.hadiyasa.springRestfulAPI.controller;
 
 import com.hadiyasa.springRestfulAPI.entity.User;
 import com.hadiyasa.springRestfulAPI.model.request.RegisterUserRequest;
+import com.hadiyasa.springRestfulAPI.model.request.UpdateUserRequest;
 import com.hadiyasa.springRestfulAPI.model.response.UserResponse;
 import com.hadiyasa.springRestfulAPI.model.response.WebResponse;
 import com.hadiyasa.springRestfulAPI.service.UserService;
@@ -30,6 +31,14 @@ public class UserController {
     @GetMapping(path = "/api/users/current", produces = MediaType.APPLICATION_JSON_VALUE)
     public WebResponse<UserResponse> getUser(User user) {
         UserResponse userResponse = userService.getUserDetails(user);
+        return WebResponse.<UserResponse>builder().data(userResponse).build();
+    }
+
+    @PatchMapping(path = "/api/users/current",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public WebResponse<UserResponse> updateUser(User user, @RequestBody UpdateUserRequest updateUserRequest) {
+        UserResponse userResponse = userService.updateUser(user, updateUserRequest);
         return WebResponse.<UserResponse>builder().data(userResponse).build();
     }
 }

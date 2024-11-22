@@ -2,6 +2,7 @@ package com.hadiyasa.springRestfulAPI.service.impl;
 
 import com.hadiyasa.springRestfulAPI.entity.User;
 import com.hadiyasa.springRestfulAPI.model.request.RegisterUserRequest;
+import com.hadiyasa.springRestfulAPI.model.request.UpdateUserRequest;
 import com.hadiyasa.springRestfulAPI.model.response.UserResponse;
 import com.hadiyasa.springRestfulAPI.repository.UserRepository;
 import com.hadiyasa.springRestfulAPI.service.UserService;
@@ -11,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Objects;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -42,6 +45,26 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getUserDetails(User user) {
-        return UserResponse.builder().username(user.getUsername()).name(user.getName()).build();
+        return UserResponse.builder()
+                .username(user.getUsername())
+                .name(user.getName())
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public UserResponse updateUser(User user, UpdateUserRequest userRequest) {
+        validationService.validate(userRequest);
+
+        if (Objects.nonNull(userRequest.getName())){
+            user.setName(userRequest.getName());
+        }
+
+        if (Objects.nonNull(userRequest.getPassword())){
+            user.setPassword(BCrypt.hashpw(userRequest.getPassword(), BCrypt.gensalt()));
+        }
+
+        userRepository.save(user);
+        return UserResponse.builder().name(user.getName()).username(user.getUsername()).build();
     }
 }

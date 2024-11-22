@@ -53,4 +53,11 @@ public class AuthServiceImpl implements AuthService {
         return System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000);
     }
 
+    @Override
+    public void logout(User user) {
+        user.setToken(null);
+        user.setTokenExpiredAt(null);
+
+        userRepository.save(user);
+    }
 }

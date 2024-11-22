@@ -1,5 +1,6 @@
 package com.hadiyasa.springRestfulAPI.resolver;
 
+import com.hadiyasa.springRestfulAPI.entity.Contact;
 import com.hadiyasa.springRestfulAPI.entity.User;
 import com.hadiyasa.springRestfulAPI.repository.UserRepository;
 import org.springframework.core.MethodParameter;
@@ -19,6 +20,10 @@ public class UserArgumentResolver implements HandlerMethodArgumentResolver {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Controller GetUser membutuhkan parameter User. Sehingga UserArgumentResolver digunakan untuk
+     * mengisi data User tersebut berdasarkan authentikasi yang ada.
+     * */
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         return User.class.equals(parameter.getParameterType());
