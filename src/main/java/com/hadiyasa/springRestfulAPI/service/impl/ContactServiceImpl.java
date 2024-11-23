@@ -9,13 +9,23 @@ import com.hadiyasa.springRestfulAPI.model.response.ContactResponse;
 import com.hadiyasa.springRestfulAPI.repository.ContactRepository;
 import com.hadiyasa.springRestfulAPI.service.ContactService;
 import com.hadiyasa.springRestfulAPI.service.ValidationService;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Service
 public class ContactServiceImpl implements ContactService {
@@ -48,7 +58,7 @@ public class ContactServiceImpl implements ContactService {
     @Transactional
     @Override
     public ContactResponse getContact(User user, String id) {
-        Contact contact = contactRepository.findById(id)
+        Contact contact = contactRepository.findByUserAndId(user, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Contact not found"));
 
         return toContactResponse(contact);
@@ -84,8 +94,40 @@ public class ContactServiceImpl implements ContactService {
     @Transactional
     @Override
     public Page<ContactResponse> searchContact(User user, SearchContactRequest searchContactRequest) {
+        Specification<Contact> specification = ((root, query, criteriaBuilder) -> {
+            // Predicate dari Jakarta Persistence
+            List<Predicate> predicates = new ArrayList<>();
 
-        return null;
+            /** Parameter 1 : User */
+            predicates.add(criteriaBuilder.equal(root.get("user"), user));
+
+            // cek
+            if (Objects.nonNull(searchContactRequest.getName())){
+                String lowerName = searchContactRequest.getName().toLowerCase();
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), "%" + lowerName + "%"),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + lowerName + "%")
+                ));
+            }
+
+            if (Objects.nonNull(searchContactRequest.getEmail())){
+                String lowerEmail = searchContactRequest.getEmail().toLowerCase();
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), "%" + lowerEmail + "%"));
+            }
+            if (Objects.nonNull(searchContactRequest.getPhone())){
+                predicates.add(criteriaBuilder.like(root.get("phone"), "%" + searchContactRequest.getPhone() + "%"));
+            }
+
+            assert query != null;
+            return query.where(predicates.toArray(new Predicate[]{})).getRestriction();
+        });
+
+        Pageable pageable = PageRequest.of(searchContactRequest.getPage(), searchContactRequest.getSize());
+        Page<Contact> contacts = contactRepository.findAll(specification, pageable);
+        List<ContactResponse> contactResponses = contacts.getContent().stream()
+                .map(this::toContactResponse).toList();
+
+        return new PageImpl<>(contactResponses, pageable, contacts.getTotalElements());
     }
 
     private ContactResponse toContactResponse(Contact contact) {
